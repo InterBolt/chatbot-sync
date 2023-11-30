@@ -1,10 +1,11 @@
-import parse from "./parse";
-import { Bot, Deployment, parseDeployment } from "./types";
+import parse from "./lib/parse";
+import { Bot, Deployment, parseDeployment } from "./lib/types";
 import { dirname, resolve } from "path";
 import { writeFile } from "fs/promises";
-import { cbk } from "./chatbotkit";
-import log from "./log";
-import { prettyError, withPrefix, withoutPrefix } from "./utils";
+import { cbk } from "./lib/chatbotkit";
+import log from "./lib/log";
+import { prettyError, withPrefix, withoutPrefix } from "./lib/utils";
+import { existsSync } from "fs";
 
 const cache: any = {};
 
@@ -48,6 +49,9 @@ const sdk_createBot = async (
     name: botName,
     description: "A bot created by the bot-scripts/deploy.ts script",
     backstory: system.backstory,
+    meta: {
+      buildABot: true,
+    },
   });
 
   log.verbose(
@@ -360,6 +364,13 @@ const sync = async () => {
   try {
     const botsDirname = "bots";
     const botsDir = resolve(process.cwd(), botsDirname);
+
+    if (!existsSync(botsDir)) {
+      throw new Error(
+        `The bots directory does not exist. Please create a directory named "${botsDirname}" in the root of your project.`
+      );
+    }
+
     const bots = await parse(botsDir);
 
     const startTime = Date.now();

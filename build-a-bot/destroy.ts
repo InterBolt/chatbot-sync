@@ -1,7 +1,7 @@
-import { cbk } from "./chatbotkit";
+import { cbk } from "./lib/chatbotkit";
 import prompts from "prompts";
-import log from "./log";
-import { warningCountdown } from "./utils";
+import log from "./lib/log";
+import { warningCountdown } from "./lib/utils";
 
 const destroy = async () => {
   const { confirmRun } = await prompts({

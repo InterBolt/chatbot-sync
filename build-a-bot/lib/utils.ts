@@ -14,7 +14,7 @@ export const prettyError = (err: any) => {
     log.error(err.message + "\n");
     err.message = err.message.replace(
       `${err.message.toString()}`,
-      colors.red("trace")
+      colors.red("stack trace:")
     );
   }
   console.log(err);

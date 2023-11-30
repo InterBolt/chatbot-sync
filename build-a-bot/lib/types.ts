@@ -1,5 +1,4 @@
 import { z } from "zod";
-import log from "./log";
 
 export const skillSchema = z.object({
   name: z.string(),

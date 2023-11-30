@@ -1,14 +1,20 @@
-import parse from "./parse";
+import parse from "./lib/parse";
 import { resolve } from "path";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "fs";
-import log from "./log";
-import colors from "colors/safe";
-import { prettyError, withPrefix } from "./utils";
+import log from "./lib/log";
+import { prettyError, withPrefix } from "./lib/utils";
 
 const create = async () => {
   let created = false;
   const botsDirname = "bots";
   const botsDir = resolve(process.cwd(), botsDirname);
+
+  if (!existsSync(botsDir)) {
+    throw new Error(
+      `The bots directory does not exist. Please create a directory named "${botsDirname}" in the root of your project.`
+    );
+  }
+
   const botName = process.argv[2];
 
   if (botName === undefined) {

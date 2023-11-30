@@ -4,7 +4,6 @@ import { isAbsolute, resolve } from "path";
 import { Bot, parseBot } from "./types";
 import { statSync, existsSync, readFileSync } from "fs";
 import { readFile } from "fs/promises";
-import colors from "colors/safe";
 import log from "./log";
 
 const parseFiles = async (
