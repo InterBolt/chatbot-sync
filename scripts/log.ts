@@ -18,7 +18,7 @@ const info = (message: string, suffix?: string) =>
 const success = (message: string, suffix?: string) =>
   console.log(
     ` ${PREFIXES.success} ${message}${
-      suffix ? `: ${colors.bold(colors.yellow(suffix))}` : ""
+      suffix ? `: ${colors.bold(colors.green(suffix))}` : ""
     }`
   );
 
@@ -31,7 +31,7 @@ const warn = (message: string, suffix?: string) =>
 
 const error = (message: string, suffix?: string) =>
   console.log(
-    ` ${PREFIXES.error} ${message}${
+    ` ${PREFIXES.error} ${colors.bold(colors.red(message))}${
       suffix ? `: ${colors.bold(colors.red(suffix))}` : ""
     }`
   );

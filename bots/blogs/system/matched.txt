@@ -1,1 +1,0 @@
-Only use the information below to answer this prompt: {search}. Never hallucinate.

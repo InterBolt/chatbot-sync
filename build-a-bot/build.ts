@@ -1,45 +1,24 @@
 import parse from "./parse";
 import { Bot, Deployment, parseDeployment } from "./types";
 import { dirname, resolve } from "path";
-import { existsSync } from "fs";
-import dotenv from "dotenv";
 import { writeFile } from "fs/promises";
-import { ChatBotKit } from "@chatbotkit/sdk";
+import { cbk, reportRequestDataWhenProcessExits } from "./chatbotkit";
 import log from "./log";
+import colors from "colors/safe";
+
+reportRequestDataWhenProcessExits();
 
 const cache: any = {};
 
 const getFilename = (fullPath: string) =>
   fullPath.replace(`${dirname(fullPath)}/`, "");
 
-const pathToEnv = resolve(process.cwd(), ".env");
-
-if (!existsSync(pathToEnv)) {
-  log.error(
-    `Missing .env file in the root of the project. If you just cloned the repo, run "mv example-env .env".`
-  );
-  process.exit(1);
-}
-
-const { parsed: ENV } = dotenv.config({
-  path: resolve(process.cwd(), ".env"),
-});
-
-const namespace = ENV?.CHATBOTKIT_NAMESPACE || "";
-const prefix = namespace ? `${namespace}-` : "";
-const secret = ENV?.CHATBOTKIT_API_KEY || "";
-
-if (!secret) {
-  log.error(`Missing CHATBOTKIT_API_KEY in .env file.`);
-  process.exit(1);
-}
+const prefix = `[build-a-bot]-`;
 
 const withPrefix = (botName: string) =>
   botName.startsWith(prefix) ? botName : `${prefix}${botName}`;
 
 const withoutPrefix = (botName: string) => botName.replace(`${prefix}`, "");
-
-const cbk: ChatBotKit = new ChatBotKit({ secret });
 
 const getCachedBot = async (botId: string) => {
   if (cache[botId]) {
@@ -51,18 +30,14 @@ const getCachedBot = async (botId: string) => {
   return bot as Awaited<ReturnType<typeof cbk.bot.fetch>>;
 };
 
-const clearCachedBots = () => {
-  for (let botId in cache) {
-    delete cache[botId];
-  }
+const clearCachedBot = (botId: string) => {
+  delete cache[botId];
 };
 
 /* -------------------------- CRUD OPERATIONS TODO -------------------------- */
 const sdk_createBot = async (
   bot: Bot
 ): Promise<{ botId: string; botName: string }> => {
-  clearCachedBots();
-
   const { system, name } = bot;
   const botName = withPrefix(name);
 
@@ -115,7 +90,6 @@ const sdk_exists = async (botId: string) => {
     const bot = await cbk.bot.fetch(botId);
     return !!bot?.id;
   } catch (err: any) {
-    console.log(err.message);
     return false;
   }
 };
@@ -228,7 +202,7 @@ const sdk_createSkills = async (botId: string, skills: Bot["skills"]) => {
 
 const cleanupIncompleteBot = async (botId: string) => {
   // Reset the bot cache to be safe
-  clearCachedBots();
+  clearCachedBot(botId);
 
   // Get the dataset and skillset for the bot
   const { items: datasets } = await cbk.dataset.list();
@@ -303,7 +277,6 @@ const createBot = async (bot: Bot) => {
     if (err?.message) log.error(err.message);
     console.error(err);
     await cleanupIncompleteBot(botId);
-    process.exit(1);
   }
 };
 
@@ -337,21 +310,40 @@ const updateBot = async (bot: Bot) => {
   }
 
   await sdk_updateBotSystem(nextDeployment.botId, bot.system);
-  log.info(`Updated system prompts`);
+  log.info(`Updated system prompts`, nextDeployment.name);
 
   await sdk_detachDatasetFiles(nextDeployment.botId);
-  log.info(`Detached dataset files`);
+  log.info(`Detached dataset files`, nextDeployment.name);
 
   await sdk_removeSkills(nextDeployment.botId);
-  log.info(`Removed abilities`);
+  log.info(`Removed abilities`, nextDeployment.name);
 
   await sdk_attachDatasetFiles(nextDeployment.botId, bot.datasetFiles);
-  log.info(`Re-uploaded and attached files to dataset`);
+  log.info(`Re-uploaded and attached files to dataset`, nextDeployment.name);
 
   await sdk_createSkills(nextDeployment.botId, bot.skills);
-  log.info(`Recreated abilities`);
+  log.info(`Recreated abilities`, nextDeployment.name);
 
   return nextDeployment;
+};
+
+// We need to do this in script because chatbotkit allows bots to have the
+// same name, but we don't want to allow that since I think its confusing
+const getHasNamingConflict = async (nextName: string) => {
+  const [{ items: bots }, { items: datasets }, { items: skillsets }]: [
+    { items: Array<{ name: string }> },
+    { items: Array<{ name: string }> },
+    { items: Array<{ name: string }> }
+  ] = await Promise.all([
+    cbk.bot.list(),
+    cbk.dataset.list(),
+    cbk.skillset.list(),
+  ]);
+
+  return [bots, datasets, skillsets]
+    .flat()
+    .map((item) => item.name)
+    .includes(nextName);
 };
 
 const build = async () => {
@@ -363,51 +355,85 @@ const build = async () => {
     const startTime = Date.now();
 
     log.wait(
-      `Deploying ${Object.keys(bots).length} bots`,
+      `Managing ${Object.keys(bots).length} bots`,
       Object.keys(bots)
         .map((name) => withPrefix(name))
         .join(", ")
     );
 
-    // Loop through the bots that were built using the filesystem and
-    // dynamic function.
+    const toDeploy = [];
+    const toUpdate = [];
+
     for (let botName in bots) {
       const bot = bots[botName];
       const botId = bot.deployment?.botId as string;
-
-      // Reset the bot cache to be safe
-      clearCachedBots();
 
       // Check if the bot already exists
       const foundDeploy = botId ? await sdk_exists(botId) : false;
 
       // Reset the bot cache to be safe
-      clearCachedBots();
+      clearCachedBot(botId);
 
+      const isUpdating = foundDeploy;
+
+      const nextName = withPrefix(botName);
+      const hasNamingConflict = await getHasNamingConflict(nextName);
+      if (isUpdating && !hasNamingConflict) {
+        throw new Error(
+          `Bot name "${nextName}" does not exist. The update attempt would fail so we're exiting early.`
+        );
+      }
+      if (!isUpdating && hasNamingConflict) {
+        throw new Error(
+          `Bot name "${nextName}" is already in use. Please rename the bot in the "bots" directory or in the chatbotkit UI.`
+        );
+      }
+
+      isUpdating ? toUpdate.push(bot) : toDeploy.push(bot);
+    }
+
+    for (let bot of toDeploy) {
       // If the bot exists, update it. Otherwise, create it.
-      const deployment = foundDeploy
-        ? await updateBot(bot)
-        : await createBot(bot);
+      const deployment = await createBot(bot);
 
-      foundDeploy
-        ? log.info(`Updated previously deployed bot`, `${withPrefix(botName)}`)
-        : log.info(`Deployed new bot`, `${withPrefix(botName)}`);
+      log.info(`Deployed new bot`, `${withPrefix(bot.name)}`);
 
       // Store the deployment info in the bot's directory
       await writeFile(
-        resolve(botsDir, withoutPrefix(botName), "deployment.json"),
+        resolve(botsDir, withoutPrefix(bot.name), "deployment.json"),
         JSON.stringify(deployment, null, 2)
       );
 
-      log.info(`Stored deployment info for bot`, `${withPrefix(botName)}`);
+      log.info(`Stored deployment info for bot`, `${withPrefix(bot.name)}`);
+    }
+
+    for (let bot of toUpdate) {
+      // If the bot exists, update it. Otherwise, create it.
+      const deployment = await updateBot(bot);
+
+      log.info(`Updated previously deployed bot`, `${withPrefix(bot.name)}`);
+
+      // Store the deployment info in the bot's directory
+      await writeFile(
+        resolve(botsDir, withoutPrefix(bot.name), "deployment.json"),
+        JSON.stringify(deployment, null, 2)
+      );
+
+      log.info(`Stored deployment info for bot`, `${withPrefix(bot.name)}`);
     }
 
     const endTime = Date.now();
     const duration = endTime - startTime;
     log.success(`Deployed all bots in `, `${duration / 1000} seconds`);
-  } catch (err) {
-    console.error(err);
-    process.exit(1);
+  } catch (err: any) {
+    if (err.message) {
+      log.error(err.message + "\n");
+      err.message = err.message.replace(
+        `${err.message.toString()}`,
+        colors.red("trace")
+      );
+    }
+    console.log(err);
   }
 };
 

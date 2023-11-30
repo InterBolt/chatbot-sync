@@ -230,7 +230,7 @@ const buildDynamicBots = async (
 };
 
 const parse = async (botsDir: string): Promise<Record<string, Bot>> => {
-  const botFiles = await glob(`${botsDir}/**/*`);
+  const botFiles = await glob(`${botsDir}/**/*`, { ignore: ["**/.gitkeep"] });
   if (botFiles.length === 0) {
     log.warn("No bots found. Exiting.");
     process.exit(0);

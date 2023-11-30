@@ -1,4 +1,5 @@
 import { z } from "zod";
+import log from "./log";
 
 export const skillSchema = z.object({
   name: z.string(),
@@ -52,45 +53,23 @@ export const botSchema = botBaseSchema
   .strict();
 
 export const parseBot = (bot: any) => {
-  try {
-    const parsedBot = botSchema.parse(bot);
-    if (!parsedBot.system.matched.includes("{search}")) {
-      throw new Error(
-        `Match prompt ${parsedBot.name}/system/matched.txt must include {search}`
-      );
-    }
-    if (!parsedBot.system.mismatched.includes("{search}")) {
-      throw new Error(
-        `Match prompt ${parsedBot.name}/system/mismatched.txt must include {search}`
-      );
-    }
-    return bot;
-  } catch (err: any) {
-    console.error(
-      `Bot parsing error: ${err.message}. \nFound: ${JSON.stringify(
-        bot,
-        null,
-        2
-      )}`
+  const parsedBot = botSchema.parse(bot);
+  if (!parsedBot.system.matched.includes("{search}")) {
+    throw new Error(
+      `Match prompt ${parsedBot.name}/system/matched.txt must include {search}`
     );
-    process.exit(1);
   }
+  if (!parsedBot.system.mismatched.includes("{search}")) {
+    throw new Error(
+      `Match prompt ${parsedBot.name}/system/mismatched.txt must include {search}`
+    );
+  }
+  return bot;
 };
 
 export const parseDeployment = (deployment: any) => {
-  try {
-    const parsedDeployment = deploymentSchema.parse(deployment);
-    return parsedDeployment;
-  } catch (err: any) {
-    console.error(
-      `Deployment parsing error: ${err.message}. \nFound: ${JSON.stringify(
-        deployment,
-        null,
-        2
-      )}`
-    );
-    process.exit(1);
-  }
+  const parsedDeployment = deploymentSchema.parse(deployment);
+  return parsedDeployment;
 };
 
 export type DatasetFile = z.infer<typeof datasetFileSchema>;

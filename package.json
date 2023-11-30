@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "npm run build:bot && npm run build:next",
-    "build:bot": "npx tsx --no-warnings build-a-bot/build.ts",
+    "bots-sync": "npx tsx --no-warnings build-a-bot/build.ts",
+    "bots-new": "npx tsx --no-warnings build-a-bot/create.ts",
     "build:next": "next build",
     "start": "next start",
     "lint": "next lint"
