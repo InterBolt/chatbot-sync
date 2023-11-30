@@ -72,7 +72,7 @@ const recursiveProxy = (obj: any): any => {
   });
 };
 
-export const cbk = recursiveProxy(buildCbk());
+export const cbk: ChatBotKit = recursiveProxy(buildCbk());
 
 const reportStats = () => {
   if (requests.succeeded.length > 0) {
@@ -96,20 +96,18 @@ const reportStats = () => {
   }
 };
 
-export const reportRequestDataWhenProcessExits = () => {
-  // do app specific cleaning before exiting
-  process.on("exit", reportStats);
+// do app specific cleaning before exiting
+process.on("exit", reportStats);
 
-  // catch ctrl+c event and exit normally
-  process.on("SIGINT", function () {
-    console.log("Ctrl-C...");
-    process.exit(2);
-  });
+// catch ctrl+c event and exit normally
+process.on("SIGINT", function () {
+  console.log("Ctrl-C...");
+  process.exit(2);
+});
 
-  //catch uncaught exceptions, trace, then exit normally
-  process.on("uncaughtException", function (e) {
-    console.log("Uncaught Exception...");
-    console.log(e.stack);
-    process.exit(99);
-  });
-};
+//catch uncaught exceptions, trace, then exit normally
+process.on("uncaughtException", function (e) {
+  console.log("Uncaught Exception...");
+  console.log(e.stack);
+  process.exit(99);
+});

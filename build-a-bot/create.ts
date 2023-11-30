@@ -2,10 +2,8 @@ import parse from "./parse";
 import { resolve } from "path";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "fs";
 import log from "./log";
-import { reportRequestDataWhenProcessExits } from "./chatbotkit";
 import colors from "colors/safe";
-
-reportRequestDataWhenProcessExits();
+import { prettyError, withPrefix } from "./utils";
 
 const create = async () => {
   let created = false;
@@ -20,6 +18,7 @@ const create = async () => {
     process.exit(1);
   }
 
+  const prefixedBotName = withPrefix(botName);
   const botDir = resolve(botsDir, botName);
 
   try {
@@ -38,7 +37,7 @@ const create = async () => {
 
     mkdirSync(datasetDir);
     writeFileSync(datasetHelloWorldFile, "hello world");
-    log.info(`Created dataset with files`, `[hello-world.txt]: ${botName}`);
+    log.info(`Created dataset with hello world file for`, prefixedBotName);
     mkdirSync(skillsDir);
     mkdirSync(skillsHelloWorldDir);
     writeFileSync(
@@ -49,7 +48,7 @@ const create = async () => {
       resolve(skillsHelloWorldDir, "description.txt"),
       "Says hello world"
     );
-    log.info(`Created skills`, `[hello-world]: ${botName}`);
+    log.info(`Created hello world skill for`, prefixedBotName);
     mkdirSync(systemDir);
     writeFileSync(
       resolve(systemDir, "backstory.txt"),
@@ -63,7 +62,7 @@ const create = async () => {
       resolve(systemDir, "mismatched.txt"),
       "I couldn't find any information for {search}."
     );
-    log.info(`Created system prompt files`, botName);
+    log.info(`Created system prompt files for`, prefixedBotName);
     writeFileSync(
       resolve(botDir, "dynamic.ts"),
       `import type { DynamicBotBuilder } from "../../build-a-bot/types";
@@ -77,23 +76,16 @@ const dynamicBot: DynamicBotBuilder = async (fileBot) => {
 export default dynamicBot;
     `.trim()
     );
-    log.info(`Created dynamic.ts file`, botName);
+    log.info(`Created dynamic.ts file for`, prefixedBotName);
 
     await parse(botsDir);
 
-    log.success(`Created bot`, botName);
+    log.success(`Created bot`, prefixedBotName);
   } catch (err: any) {
-    if (err.message) {
-      log.error(err.message + "\n");
-      err.message = err.message.replace(
-        `${err.message.toString()}`,
-        colors.red("trace")
-      );
-    }
-    console.log(err);
+    prettyError(err);
     if (created) {
       rmSync(botDir, { recursive: true });
-      log.warn(`Deleted bot directory`, botName);
+      log.warn(`Deleted bot directory`, prefixedBotName);
     }
   }
 };

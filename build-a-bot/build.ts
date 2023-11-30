@@ -2,23 +2,14 @@ import parse from "./parse";
 import { Bot, Deployment, parseDeployment } from "./types";
 import { dirname, resolve } from "path";
 import { writeFile } from "fs/promises";
-import { cbk, reportRequestDataWhenProcessExits } from "./chatbotkit";
+import { cbk } from "./chatbotkit";
 import log from "./log";
-import colors from "colors/safe";
-
-reportRequestDataWhenProcessExits();
+import { prettyError, withPrefix, withoutPrefix } from "./utils";
 
 const cache: any = {};
 
 const getFilename = (fullPath: string) =>
   fullPath.replace(`${dirname(fullPath)}/`, "");
-
-const prefix = `[build-a-bot]-`;
-
-const withPrefix = (botName: string) =>
-  botName.startsWith(prefix) ? botName : `${prefix}${botName}`;
-
-const withoutPrefix = (botName: string) => botName.replace(`${prefix}`, "");
 
 const getCachedBot = async (botId: string) => {
   if (cache[botId]) {
@@ -34,7 +25,6 @@ const clearCachedBot = (botId: string) => {
   delete cache[botId];
 };
 
-/* -------------------------- CRUD OPERATIONS TODO -------------------------- */
 const sdk_createBot = async (
   bot: Bot
 ): Promise<{ botId: string; botName: string }> => {
@@ -61,6 +51,7 @@ const sdk_createBot = async (
       mismatchInstruction: system.mismatched,
       meta: {
         botId,
+        buildABot: true,
       },
     }),
     cbk.skillset.create({
@@ -68,6 +59,7 @@ const sdk_createBot = async (
       description: "A skillset created by the bot-scripts/deploy.ts script",
       meta: {
         botId,
+        buildABot: true,
       },
     }),
   ]);
@@ -156,6 +148,7 @@ const sdk_attachDatasetFiles = async (
       description: "A file created by the bot-scripts/deploy.ts script",
       meta: {
         botId,
+        buildABot: true,
       },
     });
 
@@ -193,12 +186,11 @@ const sdk_createSkills = async (botId: string, skills: Bot["skills"]) => {
       instruction: skill.instruction,
       meta: {
         botId,
+        buildABot: true,
       },
     });
   }
 };
-
-/* -------------------------- CRUD OPERATIONS TODO -------------------------- */
 
 const cleanupIncompleteBot = async (botId: string) => {
   // Reset the bot cache to be safe
@@ -426,14 +418,7 @@ const build = async () => {
     const duration = endTime - startTime;
     log.success(`Deployed all bots in `, `${duration / 1000} seconds`);
   } catch (err: any) {
-    if (err.message) {
-      log.error(err.message + "\n");
-      err.message = err.message.replace(
-        `${err.message.toString()}`,
-        colors.red("trace")
-      );
-    }
-    console.log(err);
+    prettyError(err);
   }
 };
 
