@@ -25,6 +25,17 @@ const clearCachedBot = (botId: string) => {
   delete cache[botId];
 };
 
+const sdk_syncDatasetFiles = async (botId: string) => {
+  const { datasetId } = await getCachedBot(botId);
+  if (typeof datasetId !== "string") {
+    throw new Error(`Bot ${botId} does not have a datasetId`);
+  }
+  const { items: files } = await cbk.dataset.file.list(datasetId);
+  await Promise.all(
+    files.map((file: any) => cbk.dataset.file.sync(datasetId, file.id, {}))
+  );
+};
+
 const sdk_createBot = async (
   bot: Bot
 ): Promise<{ botId: string; botName: string }> => {
@@ -261,8 +272,12 @@ const createBot = async (bot: Bot) => {
       `Attached dataset files to bot`,
       ` ${withPrefix(nextDeployment.name)}`
     );
+
     await sdk_createSkills(nextDeployment.botId, bot.skills);
     log.info(`Created skills for bot`, ` ${withPrefix(nextDeployment.name)}`);
+
+    await sdk_syncDatasetFiles(nextDeployment.botId);
+    log.info(`Synced dataset files for bot`, ` ${withPrefix(bot.name)}`);
 
     return nextDeployment;
   } catch (err: any) {
@@ -316,6 +331,9 @@ const updateBot = async (bot: Bot) => {
   await sdk_createSkills(nextDeployment.botId, bot.skills);
   log.info(`Recreated abilities`, nextDeployment.name);
 
+  await sdk_syncDatasetFiles(nextDeployment.botId);
+  log.info(`Synced dataset files`, nextDeployment.name);
+
   return nextDeployment;
 };
 
@@ -338,7 +356,7 @@ const getHasNamingConflict = async (nextName: string) => {
     .includes(nextName);
 };
 
-const build = async () => {
+const sync = async () => {
   try {
     const botsDirname = "bots";
     const botsDir = resolve(process.cwd(), botsDirname);
@@ -422,4 +440,4 @@ const build = async () => {
   }
 };
 
-build();
+sync();

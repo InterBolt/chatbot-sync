@@ -8,7 +8,7 @@
     "build:next": "next build",
     "start": "next start",
     "lint": "next lint",
-    "sync-bots": "npx tsx --no-warnings build-a-bot/build.ts",
+    "sync-bots": "npx tsx --no-warnings build-a-bot/sync.ts",
     "create-bot-template": "npx tsx --no-warnings build-a-bot/create.ts",
     "destroy-bots": "npx tsx --no-warnings build-a-bot/destroy.ts"
   },
