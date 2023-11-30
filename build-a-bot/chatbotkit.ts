@@ -38,34 +38,36 @@ const recursiveProxy = (obj: any): any => {
       if (typeof target[prop] === "object" && target[prop] !== null) {
         return recursiveProxy(target[prop]);
       }
-      return target[prop];
-    },
-    apply(target, thisArg, argArray) {
-      const returned = target.call(thisArg, ...argArray);
+      if (typeof target[prop] === "function") {
+        return (...args: any[]) => {
+          const returned = target[prop](...args);
 
-      if (typeof returned.then === "function") {
-        return new Promise((resolve: any, reject: any) => {
-          returned
-            .then((...args: any[]) => {
-              requests.succeeded.push({
-                method: target.name,
-                args,
-                response: args[0],
-              });
-              resolve(...args);
-            })
-            .catch((...args: any[]) => {
-              requests.failed.push({
-                method: target.name,
-                args,
-                response: args[0],
-              });
-              reject(...args);
+          if (typeof returned.then !== "undefined") {
+            return new Promise((resolve: any, reject: any) => {
+              returned
+                .then((...args: any[]) => {
+                  requests.succeeded.push({
+                    method: target.name,
+                    args,
+                    response: args[0],
+                  });
+                  resolve(...args);
+                })
+                .catch((...args: any[]) => {
+                  requests.failed.push({
+                    method: target.name,
+                    args,
+                    response: args[0],
+                  });
+                  reject(...args);
+                });
             });
-        });
-      }
+          }
 
-      return returned;
+          return returned;
+        };
+      }
+      return target[prop];
     },
   });
 };
@@ -75,16 +77,16 @@ export const cbk = recursiveProxy(buildCbk());
 const reportStats = () => {
   if (requests.succeeded.length > 0) {
     log.warn(`Fulfilled ${requests.succeeded.length} requests to ChatBotKit`);
-    log.info(
+    log.verbose(
       `Fulfilled log (latest - oldest)`,
-      `\n${JSON.stringify({ bit: ["asdf"], ok: "asdf" }, null, 2)
+      `\n${JSON.stringify(requests.succeeded, null, 2)
         .split("\n")
         .map((str) => ` ${str}`)
         .join("\n")}`
     );
   }
   if (requests.failed.length > 0) {
-    log.info(
+    log.verbose(
       `Failed log (latest - oldest)`,
       `\n${JSON.stringify(requests.failed, null, 2)
         .split("\n")
