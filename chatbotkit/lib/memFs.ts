@@ -69,7 +69,10 @@ export const preprocessMemFS = async (botsDir: string) => {
       .split("/")
       .filter((e) => e)[0];
     const botVariables = botVars[botName];
-    if (botVariables) {
+    if (
+      (botVariables && filePath.endsWith(".md")) ||
+      filePath.endsWith(".txt")
+    ) {
       const fileContent = memFs.readFileSync(filePath, "utf8") || "";
       const compiled = template(fileContent as string);
       try {

@@ -180,6 +180,8 @@ const parseFileBots = async (
     (partialBot: any, name: string) =>
       parseBot({
         ...partialBot,
+        abilities: partialBot.abilities || [],
+        datasetFiles: partialBot.datasetFiles || [],
         name,
         deployment: extractDeployment(botsDir, name),
       })

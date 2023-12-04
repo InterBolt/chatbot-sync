@@ -5,7 +5,7 @@ import { writeFile } from "fs/promises";
 import { cbk } from "./lib/chatbotkit";
 import log from "./lib/log";
 import { prettyError, withPrefix, withoutPrefix } from "./lib/utils";
-import { existsSync } from "fs";
+import { existsSync, writeFileSync } from "fs";
 
 const cache: any = {};
 

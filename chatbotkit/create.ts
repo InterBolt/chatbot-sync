@@ -20,7 +20,7 @@ const create = async () => {
 
   if (botName === undefined) {
     log.error(
-      "Please provide a bot name as the first argument likeso: `npm run create-bot [bot-name]`"
+      "Please provide a bot name as the first argument likeso: `npm run create [bot-name]`"
     );
     process.exit(1);
   }

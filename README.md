@@ -6,7 +6,7 @@
 
 A set of scripts to manage [ChatBotKit](https://chatbotkit.com/) bots within version control. [I recommend reading the introductory blog post](https://interbolt/blog/chatbotkit-sync-tool/), which includes a tutorial in the second half to help get you started.
 
-![demo](https://interbolt.org/images/blog/chatbotkit-sync-tool/demo-readme.gif)
+![demo](https://interbolt.org/images/blog/chatbotkit-sync-tool/screenshots/cli-full.gif)
 
 ## Motivation
 
@@ -72,4 +72,4 @@ A programmatically generated and maintained file that tells `npm run sync` that 
 
 ## Roadmap
 
-As of now, I don't have plans to turn this into an NPM package. I just wanted to share because I thought it was useful. If you'd like me to continue working on it, consider mentioning me ([@interbolt_colin](https://twitter.com/interbolt_colin)) in a tweet along with a link to [this blog post](https://interbolt/blog/chatbotkit-sync-tool/) and a feature request.
+As of now, I don't have plans to turn this into an NPM package. I just wanted to share because I thought it was useful. If you'd like me to continue working on it, consider mentioning me ([@interbolt_colin](https://twitter.com/interbolt_colin)) in a tweet that includes [this link](https://interbolt/blog/chatbotkit-sync-tool/) + a feature request.
