@@ -14,27 +14,11 @@ Nothing against ChatBotKit's UI, but I don't like managing important things like
 
 ### `npm run create-bot-template [bot-name]`
 
-##### Description:
-
-Generates hello-world starter files and folders within the `bots/my-awesome-bot/` directory. See the [filesystem API](#filesystem-api) below for details.
-
-##### Usage:
-
-```bash
-npm run create-bot-template my-awesome-bot
-```
+Generates hello-world starter files and folders within the `bots/[bot-name]/` directory. See the [filesystem API](#filesystem-api) below for details.
 
 ### `npm run sync-bots`
 
-##### Description:
-
 Determines whether or not a bot defined within the repo needs to be created or updated, and then makes the appropriate API requests to do so. Running this for the first time will create any new bots found within the repo's `bots/*` folder and generate a `bots/<bot>/deployment.json` file for each one, which tells subsequent executions of the script to update, rather than create, the bot.
-
-##### Usage:
-
-```bash
-npm run sync-bots
-```
 
 ## Filesystem API
 
@@ -50,19 +34,19 @@ A TypeScript file that exports a single function whose return object defines all
 
 ### `abilities/`
 
-Contains subdirectories, each of which represents an [ability](https://chatbotkit.com/docs/skillsets). Each ability directory contains a `description.txt` file and an `instruction.txt` file. These files serve the exact same purpose as the instruction and description text inputs in the ChatBotKit skillset UI. ([see the docs](https://chatbotkit.com/tutorials/how-to-use-chatbot-skillsets-to-create-a-weather-forcast-bot))
+Contains subdirectories, each of which represents an [ability](https://chatbotkit.com/docs/skillsets). Each ability directory contains a `description.txt` file and an `instruction.txt` file. These files serve the exact same purpose as the instruction and description text inputs in the ChatBotKit skillset UI. ([official docs](https://chatbotkit.com/tutorials/how-to-use-chatbot-skillsets-to-create-a-weather-forcast-bot))
 
 ### `identity/backstory.txt`
 
-A kind of prompt context on steroids ([chatbotkit docs](https://chatbotkit.com/docs/backstories))
+A kind of prompt context on steroids ([official docs](https://chatbotkit.com/docs/backstories))
 
 ### `identity/matched.txt`
 
-Guides the bot's response when a user query matches content in the bot's dataset ([chatbotkit docs](https://chatbotkit.com/docs/datasets))
+Guides the bot's response when a user query matches content in the bot's dataset ([official docs](https://chatbotkit.com/docs/datasets))
 
 ### `identity/mismatched.txt`
 
-Guides the bot's response when a user query does not match any content in the bot's dataset ([chatbotkit docs](https://chatbotkit.com/docs/datasets))
+Guides the bot's response when a user query does not match any content in the bot's dataset ([official docs](https://chatbotkit.com/docs/datasets))
 
 ### `deployment.json`
 
