@@ -4,7 +4,7 @@
 
 # Chatbot Sync
 
-A set of scripts to manage [ChatBotKit](https://chatbotkit.com/) bots within version control. [I recommend reading the introductory blog post](https://interbolt/blog/chatbotkit-sync-tool/), which includes a tutorial in the second half to help get you started.
+A set of scripts to manage [ChatBotKit](https://chatbotkit.com/) bots within version control. [I recommend reading the introductory blog post](https://interbolt.org/blog/chatbotkit-sync-tool/), which includes a tutorial in the second half to help get you started.
 
 ![demo](https://interbolt.org/images/blog/chatbotkit-sync-tool/screenshots/cli-full.gif)
 
