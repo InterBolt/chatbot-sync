@@ -1,6 +1,6 @@
 ![X (formerly Twitter) Follow](https://img.shields.io/twitter/follow/interbolt_colin)
 
-**This work is based on [ChatBotKit](https://chatbotkit.com/)'s open sourced node-sdk, but is not officially endorsed or sponsored by the company.**
+**_This work is based on [ChatBotKit](https://chatbotkit.com/)'s open sourced node-sdk, but is not officially endorsed or sponsored by the company._**
 
 # Chatbot Sync
 
