@@ -2,9 +2,9 @@
   "name": "chatbot-sync",
   "version": "0.1.0",
   "scripts": {
-    "sync-bots": "npx tsx --no-warnings chatbotkit/sync.ts",
-    "create-bot-template": "npx tsx --no-warnings chatbotkit/create.ts",
-    "dangerous:destroy-bots": "npx tsx --no-warnings chatbotkit/destroy.ts"
+    "sync": "npx tsx --no-warnings chatbotkit/sync.ts",
+    "create": "npx tsx --no-warnings chatbotkit/create.ts",
+    "dangerous:destroy": "npx tsx --no-warnings chatbotkit/destroy.ts"
   },
   "devDependencies": {
     "@chatbotkit/sdk": "^1.1.10",

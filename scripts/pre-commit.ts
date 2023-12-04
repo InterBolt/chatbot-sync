@@ -1,4 +1,4 @@
-import { existsSync, unlinkSync } from "fs";
+import { existsSync, statSync, unlinkSync } from "fs";
 import { readdir } from "fs/promises";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -8,13 +8,14 @@ import dotenv from "dotenv";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const main = async () => {
-  const botDir = resolve(__dirname, "..", "bots");
-  const bots = await readdir(botDir);
+  const botsDir = resolve(__dirname, "..", "bots");
+  const bots = await readdir(botsDir);
   bots.forEach((bot) => {
-    const deploymentFile = resolve(botDir, bot, "deployment.json");
-    if (existsSync(deploymentFile)) {
-      unlinkSync(deploymentFile);
-      log.warn(`Deleted ${deploymentFile}`);
+    const botDir = resolve(botsDir, bot);
+    if (statSync(botDir).isDirectory()) {
+      throw new Error(
+        `Do something about that bot: ${botDir}. You probably don't mean to open source it.`
+      );
     }
   });
 };

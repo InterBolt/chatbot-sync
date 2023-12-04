@@ -8,15 +8,15 @@ A set of scripts to manage [ChatBotKit](https://chatbotkit.com/) bots within ver
 
 ## Motivation
 
-Nothing against ChatBotKit's UI, but I don't like managing important things like my AI chatbot's state through any type of UI, no matter its design. This repo implements a filesystem API to manage a bot's skills, dataset files, and prompt overrides so that any changes to a bot's behavior are auditable within VC history.
+Nothing against ChatBotKit's UI, but I don't like managing important things like my AI chatbot's state through a UI, no matter its design. This repo implements a filesystem API to manage a bot's skills, dataset files, and prompt overrides so that any changes to a bot's behavior are auditable within VC history.
 
 ## NPM Scripts
 
-### `npm run create-bot-template [bot-name]`
+### `npm run create [bot-name]`
 
 Generates hello-world starter files and folders within the `bots/[bot-name]/` directory. See the [filesystem API](#filesystem-api) below for details.
 
-### `npm run sync-bots`
+### `npm run sync`
 
 Determines whether or not a bot defined within the repo needs to be created or updated, and then makes the appropriate API requests to do so. Running this for the first time will create any new bots found within the repo's `bots/*` folder and generate a `bots/<bot>/deployment.json` file for each one, which tells subsequent executions of the script to update, rather than create, the bot.
 
@@ -50,7 +50,7 @@ Guides the bot's response when a user query does not match any content in the bo
 
 ### `deployment.json`
 
-A programmatically generated and maintained file that tells `npm run sync-bots` that a bot in our filesystem was already created within [ChatBotKit](https://chatbotkit.com).
+A programmatically generated and maintained file that tells `npm run sync` that a bot in our filesystem was already created within [ChatBotKit](https://chatbotkit.com).
 
 ## Roadmap
 
