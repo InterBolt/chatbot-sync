@@ -42,7 +42,6 @@ const destroy = async () => {
   const { confirmedDelete } = await prompts({
     type: "confirm",
     name: "confirmedDelete",
-    initial: false,
     message: `Are you sure you want to delete ${datasetsToDelete.length} datasets, ${filesToDelete.length} files, ${skillsToDelete.length} skills, ${abilitiesToDelete.length} abilities, and ${botsToDelete.length} bots?`,
   });
 

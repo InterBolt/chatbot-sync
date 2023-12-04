@@ -40,7 +40,7 @@ const sdk_syncDatasetFiles = async (botId: string) => {
 const sdk_createBot = async (
   bot: Bot
 ): Promise<{ botId: string; botName: string }> => {
-  const { system, name } = bot;
+  const { identity, name } = bot;
   const botName = withPrefix(name);
 
   log.verbose(`Initializing bot via API: ${withPrefix(botName)}`);
@@ -48,7 +48,7 @@ const sdk_createBot = async (
     model: "gpt-4-next",
     name: botName,
     description: "A bot created by the bot-scripts/deploy.ts script",
-    backstory: system.backstory,
+    backstory: identity.backstory,
     meta: {
       buildABot: true,
     },
@@ -62,8 +62,8 @@ const sdk_createBot = async (
       store: "ada-sprout",
       name: botName,
       description: "A dataset created by the bot-scripts/deploy.ts script",
-      matchInstruction: system.matched,
-      mismatchInstruction: system.mismatched,
+      matchInstruction: identity.matched,
+      mismatchInstruction: identity.mismatched,
       meta: {
         botId,
         buildABot: true,
@@ -101,18 +101,21 @@ const sdk_exists = async (botId: string) => {
   }
 };
 
-const sdk_updateBotSystem = async (botId: string, system: Bot["system"]) => {
+const sdk_updateBotSystem = async (
+  botId: string,
+  identity: Bot["identity"]
+) => {
   const { datasetId } = await getCachedBot(botId);
   log.verbose(
     `Updating dataset matchInstruction and mismatchInstruction: ${datasetId}`
   );
   await cbk.dataset.update(datasetId as string, {
-    matchInstruction: system.matched,
-    mismatchInstruction: system.mismatched,
+    matchInstruction: identity.matched,
+    mismatchInstruction: identity.mismatched,
   });
   log.verbose(`Updating bot backstory: ${botId}`);
   await cbk.bot.update(botId, {
-    backstory: system.backstory,
+    backstory: identity.backstory,
   });
 };
 
@@ -184,21 +187,26 @@ const sdk_attachDatasetFiles = async (
 
 const sdk_removeSkills = async (botId: string) => {
   const { skillsetId } = await getCachedBot(botId);
-  const { items } = await cbk.skillset.ability.list(skillsetId as string);
-  for (let item of items) {
-    log.verbose(`Removing skill ability: ${item.name}`);
-    await cbk.skillset.ability.delete(skillsetId as string, item.id as string);
+  const { items: abilities } = await cbk.skillset.ability.list(
+    skillsetId as string
+  );
+  for (let ability of abilities) {
+    log.verbose(`Removing ability: ${ability.name}`);
+    await cbk.skillset.ability.delete(
+      skillsetId as string,
+      ability.id as string
+    );
   }
 };
 
-const sdk_createSkills = async (botId: string, skills: Bot["skills"]) => {
+const sdk_createSkills = async (botId: string, abilities: Bot["abilities"]) => {
   const { skillsetId } = await getCachedBot(botId);
-  for (let skill of skills) {
-    log.verbose(`Creating skill ability: ${skill.name}`);
+  for (let ability of abilities) {
+    log.verbose(`Creating ability: ${ability.name}`);
     await cbk.skillset.ability.create(skillsetId as string, {
-      name: skill.name,
-      description: skill.description,
-      instruction: skill.instruction,
+      name: ability.name,
+      description: ability.description,
+      instruction: ability.instruction,
       meta: {
         botId,
         buildABot: true,
@@ -222,21 +230,21 @@ const cleanupIncompleteBot = async (botId: string) => {
     if (skillset) {
       log.verbose(`Deleting skillset for incomplete bot: ${botId}`);
       await cbk.skillset.delete(skillset.id);
-      log.warn(`Force removed skills from bot: ${botId}`);
+      log.warn(`Force removed abilities from bot: ${botId}`);
     }
   } catch (err) {
     console.error(err);
-    log.error(`Failed to remove skills from bot: ${botId}`);
+    log.error(`Failed to remove abilities from bot: ${botId}`);
   }
   try {
     if (dataset) {
       log.verbose(`Deleting dataset for incomplete bot: ${botId}`);
       await cbk.dataset.delete(dataset.id);
-      log.warn(`Force removed skills from bot: ${botId}`);
+      log.warn(`Force removed abilities from bot: ${botId}`);
     }
   } catch (err) {
     console.error(err);
-    log.error(`Failed to remove skills from bot: ${botId}`);
+    log.error(`Failed to remove abilities from bot: ${botId}`);
   }
   try {
     log.verbose(`Deleting incomplete bot: ${botId}`);
@@ -255,7 +263,7 @@ const createBot = async (bot: Bot) => {
 
   try {
     // Ensure that the deployment info is correct before creating
-    // the dataset files and skills.
+    // the dataset files and abilities.
     const nextDeployment = parseDeployment({
       botId,
       name: withPrefix(bot.name),
@@ -264,7 +272,7 @@ const createBot = async (bot: Bot) => {
         fileName: getFilename(b.filePath),
         updatedAt: new Date().toString(),
       })),
-      skills: bot.skills.map((b) => ({
+      abilities: bot.abilities.map((b) => ({
         name: b.name,
         updatedAt: new Date().toString(),
       })),
@@ -277,8 +285,11 @@ const createBot = async (bot: Bot) => {
       ` ${withPrefix(nextDeployment.name)}`
     );
 
-    await sdk_createSkills(nextDeployment.botId, bot.skills);
-    log.info(`Created skills for bot`, ` ${withPrefix(nextDeployment.name)}`);
+    await sdk_createSkills(nextDeployment.botId, bot.abilities);
+    log.info(
+      `Created abilities for bot`,
+      ` ${withPrefix(nextDeployment.name)}`
+    );
 
     await sdk_syncDatasetFiles(nextDeployment.botId);
     log.info(`Synced dataset files for bot`, ` ${withPrefix(bot.name)}`);
@@ -304,7 +315,7 @@ const updateBot = async (bot: Bot) => {
       fileName: getFilename(b.filePath),
       updatedAt: new Date().toString(),
     })),
-    skills: bot.skills.map((s) => ({
+    abilities: bot.abilities.map((s) => ({
       name: s.name,
       updatedAt: new Date().toString(),
     })),
@@ -320,8 +331,8 @@ const updateBot = async (bot: Bot) => {
     );
   }
 
-  await sdk_updateBotSystem(nextDeployment.botId, bot.system);
-  log.info(`Updated system prompts`, nextDeployment.name);
+  await sdk_updateBotSystem(nextDeployment.botId, bot.identity);
+  log.info(`Updated identity prompts`, nextDeployment.name);
 
   await sdk_detachDatasetFiles(nextDeployment.botId);
   log.info(`Detached dataset files`, nextDeployment.name);
@@ -332,7 +343,7 @@ const updateBot = async (bot: Bot) => {
   await sdk_attachDatasetFiles(nextDeployment.botId, bot.datasetFiles);
   log.info(`Re-uploaded and attached files to dataset`, nextDeployment.name);
 
-  await sdk_createSkills(nextDeployment.botId, bot.skills);
+  await sdk_createSkills(nextDeployment.botId, bot.abilities);
   log.info(`Recreated abilities`, nextDeployment.name);
 
   await sdk_syncDatasetFiles(nextDeployment.botId);

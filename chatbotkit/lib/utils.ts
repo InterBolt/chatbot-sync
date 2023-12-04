@@ -1,7 +1,7 @@
 import log from "./log";
 import colors from "colors/safe";
 
-export const prefix = `[build-a-bot]-`;
+export const prefix = `[cb-sync]-`;
 
 export const withPrefix = (botName: string) =>
   botName.startsWith(prefix) ? botName : `${prefix}${botName}`;

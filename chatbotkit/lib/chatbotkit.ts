@@ -27,16 +27,16 @@ const buildCbk = () => {
   return new ChatBotKit({ secret });
 };
 
-const requests: any = {
+const asyncCalls: any = {
   succeeded: [],
   failed: [],
 };
 
-const recursiveProxy = (obj: any): any => {
+const trackAsyncCalls = (obj: any): any => {
   return new Proxy(obj, {
     get: (target, prop) => {
       if (typeof target[prop] === "object" && target[prop] !== null) {
-        return recursiveProxy(target[prop]);
+        return trackAsyncCalls(target[prop]);
       }
       if (typeof target[prop] === "function") {
         return (...args: any[]) => {
@@ -46,7 +46,7 @@ const recursiveProxy = (obj: any): any => {
             return new Promise((resolve: any, reject: any) => {
               returned
                 .then((...args: any[]) => {
-                  requests.succeeded.push({
+                  asyncCalls.succeeded.push({
                     method: target.name,
                     args,
                     response: args[0],
@@ -54,7 +54,7 @@ const recursiveProxy = (obj: any): any => {
                   resolve(...args);
                 })
                 .catch((...args: any[]) => {
-                  requests.failed.push({
+                  asyncCalls.failed.push({
                     method: target.name,
                     args,
                     response: args[0],
@@ -72,23 +72,25 @@ const recursiveProxy = (obj: any): any => {
   });
 };
 
-export const cbk: ChatBotKit = recursiveProxy(buildCbk());
+export const cbk: ChatBotKit = trackAsyncCalls(buildCbk());
 
 const reportStats = () => {
-  if (requests.succeeded.length > 0) {
-    log.warn(`Fulfilled ${requests.succeeded.length} requests to ChatBotKit`);
+  if (asyncCalls.succeeded.length > 0) {
+    log.warn(
+      `Fulfilled ${asyncCalls.succeeded.length} asyncCalls to ChatBotKit`
+    );
     log.verbose(
       `Fulfilled log (latest - oldest)`,
-      `\n${JSON.stringify(requests.succeeded, null, 2)
+      `\n${JSON.stringify(asyncCalls.succeeded, null, 2)
         .split("\n")
         .map((str) => ` ${str}`)
         .join("\n")}`
     );
   }
-  if (requests.failed.length > 0) {
+  if (asyncCalls.failed.length > 0) {
     log.verbose(
       `Failed log (latest - oldest)`,
-      `\n${JSON.stringify(requests.failed, null, 2)
+      `\n${JSON.stringify(asyncCalls.failed, null, 2)
         .split("\n")
         .map((str) => ` ${str}`)
         .join("\n")}`

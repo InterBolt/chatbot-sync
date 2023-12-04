@@ -1,10 +1,8 @@
 import { glob } from "glob";
-import { mapValues, merge, set, get, uniq, isEmpty } from "lodash";
+import { mapValues, merge, set, get, isEmpty } from "lodash";
 import { isAbsolute, resolve } from "path";
 import { Bot, parseBot } from "./types";
-import { statSync, existsSync, readFileSync } from "fs";
-import { readFile } from "fs/promises";
-import log from "./log";
+import { initMemFS, preprocessMemFS, memFs } from "./memFs";
 
 const parseFiles = async (
   dir: string,
@@ -45,49 +43,49 @@ const parseFiles = async (
         .slice(0, treeFile.lastIndexOf("."))
         .replace(`${dir}/`, "")
         .replaceAll("/", "."),
-      await readFile(treeFile, "utf-8")
+      memFs.readFileSync(treeFile, "utf-8")
     );
   }
 
   return tree;
 };
 
-const extractSkills = async (
+const extractAbilities = async (
   filePaths: Array<string>
-): Promise<Record<string, Pick<Bot, "skills">>> => {
-  const search = "/skills/";
-  const skills = filePaths.reduce((accum, filePath) => {
+): Promise<Record<string, Pick<Bot, "abilities">>> => {
+  const search = "/abilities/";
+  const abilities = filePaths.reduce((accum, filePath) => {
     if (filePath.includes(search)) {
       const parentDir = filePath.split(search)[0];
-      const skillName = filePath.split(search)[1].split("/")[0];
-      const skillDir = resolve(parentDir, `skills`, skillName);
-      if (!statSync(skillDir).isDirectory()) {
-        throw new Error(`Skill path ${skillDir} is not a directory`);
+      const abilityName = filePath.split(search)[1].split("/")[0];
+      const abilityDir = resolve(parentDir, `abilities`, abilityName);
+      if (!memFs.statSync(abilityDir).isDirectory()) {
+        throw new Error(`Ability path ${abilityDir} is not a directory`);
       }
       const botName = parentDir.split("/").at(-1) as string;
-      set(accum, [botName, skillName], skillDir);
+      set(accum, [botName, abilityName], abilityDir);
     }
     return accum;
   }, {} as Record<string, Record<string, string>>);
 
-  const skillsToParse = Object.entries(skills);
-  const botSkills: Record<string, Pick<Bot, "skills">> = {};
-  for (let [botName, skill] of skillsToParse) {
-    const skillName = Object.keys(skill)[0];
-    const files = await parseFiles(skill[skillName], {
+  const abilitiesToParse = Object.entries(abilities);
+  const botAbilities: Record<string, Pick<Bot, "abilities">> = {};
+  for (let [botName, ability] of abilitiesToParse) {
+    const abilityName = Object.keys(ability)[0];
+    const files = await parseFiles(ability[abilityName], {
       exactFiles: ["instruction.txt", "description.txt"],
     });
-    if (!Array.isArray(get(botSkills, [botName, "skills"]))) {
-      set(botSkills, [botName, "skills"], []);
+    if (!Array.isArray(get(botAbilities, [botName, "abilities"]))) {
+      set(botAbilities, [botName, "abilities"], []);
     }
-    get(botSkills, [botName, "skills"]).push({
-      name: skillName,
+    get(botAbilities, [botName, "abilities"]).push({
+      name: abilityName,
       instruction: files["instruction"],
       description: files["description"],
     });
   }
 
-  return botSkills;
+  return botAbilities;
 };
 
 const extractDatasets = async (
@@ -99,7 +97,7 @@ const extractDatasets = async (
       const parentDir = filePath.split(search)[0];
       const datasetDir = resolve(parentDir, `dataset`);
       const botName = parentDir.split("/").at(-1) as string;
-      if (!statSync(datasetDir).isDirectory()) {
+      if (!memFs.statSync(datasetDir).isDirectory()) {
         throw new Error(`Dataset path ${datasetDir} is not a directory`);
       }
       accum[botName] = datasetDir;
@@ -129,25 +127,25 @@ const extractDatasets = async (
 
 const extractSystem = async (
   filePaths: Array<string>
-): Promise<Record<string, Pick<Bot, "system">>> => {
-  const search = "/system/";
-  const systemDirs = filePaths.reduce((accum, filePath) => {
+): Promise<Record<string, Pick<Bot, "identity">>> => {
+  const search = "/identity/";
+  const identityDirs = filePaths.reduce((accum, filePath) => {
     if (filePath.includes(search)) {
       const parentDir = filePath.split(search)[0];
-      const systemDir = resolve(parentDir, `system`);
+      const identityDir = resolve(parentDir, `identity`);
       const botName = parentDir.split("/").at(-1) as string;
-      if (!statSync(systemDir).isDirectory()) {
-        throw new Error(`Dataset path ${systemDir} is not a directory`);
+      if (!memFs.statSync(identityDir).isDirectory()) {
+        throw new Error(`Dataset path ${identityDir} is not a directory`);
       }
-      accum[botName] = systemDir;
+      accum[botName] = identityDir;
     }
     return accum;
   }, {} as Record<string, string>);
 
-  const botSystems: Record<string, Pick<Bot, "system">> = {};
-  for (let [botName, systemDir] of Object.entries(systemDirs)) {
-    const parsedFiles = await parseFiles(systemDir);
-    set(botSystems, [botName, "system"], {
+  const botSystems: Record<string, Pick<Bot, "identity">> = {};
+  for (let [botName, identityDir] of Object.entries(identityDirs)) {
+    const parsedFiles = await parseFiles(identityDir);
+    set(botSystems, [botName, "identity"], {
       backstory: parsedFiles["backstory"],
       mismatched: parsedFiles["mismatched"],
       matched: parsedFiles["matched"],
@@ -160,8 +158,10 @@ const extractSystem = async (
 const extractDeployment = (botsDir: string, botName: string): any => {
   const deploymentPath = resolve(botsDir, botName, "deployment.json");
   let deployment = {};
-  if (existsSync(deploymentPath)) {
-    deployment = JSON.parse(readFileSync(deploymentPath, "utf-8"));
+  if (memFs.existsSync(deploymentPath)) {
+    deployment = JSON.parse(
+      memFs.readFileSync(deploymentPath, "utf-8") as string
+    );
   }
   return isEmpty(deployment || {}) ? null : deployment;
 };
@@ -173,7 +173,7 @@ const parseFileBots = async (
   return mapValues(
     merge(
       {},
-      await extractSkills(botFiles),
+      await extractAbilities(botFiles),
       await extractDatasets(botFiles),
       await extractSystem(botFiles)
     ),
@@ -186,68 +186,23 @@ const parseFileBots = async (
   );
 };
 
-const buildDynamicBots = async (
-  botsDir: string,
-  botFiles: Array<string>,
-  fileBots: Record<string, Partial<Bot>>
-) => {
-  const botDynamicFiles = await Promise.all(
-    botFiles
-      .filter((file) => file.endsWith("/dynamic.ts"))
-      .filter(
-        (buildFilePath) =>
-          buildFilePath.replace(`${botsDir}/`, "").split("/").length === 2
-      )
-  );
-
-  // Get the list of botNames associated with the found dynamic.ts files.
-  const botNames = botDynamicFiles.map(
-    (file) => file.split("/").at(-2) as string
-  );
-
-  // Import the dynamic.ts files and build the bo
-  const dynamicBots = await Promise.all(
-    botDynamicFiles.map(async (filePath, i) => {
-      const builder = await import(filePath);
-      const built: Partial<Bot> = await builder.default(
-        fileBots[botNames[i]] || {}
-      );
-      return built;
-    })
-  );
-
-  // Find the deployment.json files if they exist.
-  const deployments = botNames.map((name) => extractDeployment(botsDir, name));
-
-  return botNames.reduce((accum, botName, i) => {
-    accum[botName] = {
-      ...dynamicBots[i],
-      deployment: deployments[i],
-    };
-    return accum;
-  }, {} as Record<string, Partial<Bot>>);
-};
-
 const parse = async (botsDir: string): Promise<Record<string, Bot>> => {
-  const botFiles = await glob(`${botsDir}/**/*`, { ignore: ["**/.gitkeep"] });
-  if (botFiles.length === 0) {
-    log.warn("No bots found. Exiting.");
-    process.exit(0);
-  }
+  // Loads all bot files into memory so we can use memfs
+  const botFiles = await initMemFS(botsDir);
+
+  // Preprocesses file contents by injecting variables.
+  await preprocessMemFS(botsDir);
 
   // Generate the bots from the files.
   const fileBots = await parseFileBots(botsDir, botFiles);
 
-  // Then use the generated bots to build the dynamic bots.
-  const dynamicBots = await buildDynamicBots(botsDir, botFiles, fileBots);
-
   // Get the list of bot names.
-  const botNames = uniq(Object.keys(dynamicBots).concat(Object.keys(fileBots)));
+  const botNames = Object.keys(fileBots);
 
   // Merge the file bots and dynamic bots.
   const bots: Record<string, Bot> = {};
   for (const botName of botNames) {
-    set(bots, [botName], merge({}, fileBots[botName], dynamicBots[botName]));
+    set(bots, [botName], merge({}, fileBots[botName]));
     set(bots, [botName, "name"], botName);
   }
 

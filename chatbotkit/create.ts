@@ -3,6 +3,7 @@ import { resolve } from "path";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "fs";
 import log from "./lib/log";
 import { prettyError, withPrefix } from "./lib/utils";
+import { stripIndent } from "common-tags";
 
 const create = async () => {
   let created = false;
@@ -33,56 +34,63 @@ const create = async () => {
     }
 
     const datasetDir = resolve(botDir, "dataset");
-    const skillsDir = resolve(botDir, "skills");
-    const systemDir = resolve(botDir, "system");
-    const skillsHelloWorldDir = resolve(skillsDir, "hello-world");
+    const abilitiesDir = resolve(botDir, "abilities");
+    const identityDir = resolve(botDir, "identity");
+    const abilitiesHelloWorldDir = resolve(abilitiesDir, "hello-world");
     const datasetHelloWorldFile = resolve(datasetDir, "hello-world.txt");
 
     mkdirSync(botDir);
     created = true;
 
+    // Initialize dataset hello world file.
     mkdirSync(datasetDir);
     writeFileSync(datasetHelloWorldFile, "hello world");
     log.info(`Created dataset with hello world file for`, prefixedBotName);
-    mkdirSync(skillsDir);
-    mkdirSync(skillsHelloWorldDir);
+
+    // Initialize abilities hello world files.
+    mkdirSync(abilitiesDir);
+    mkdirSync(abilitiesHelloWorldDir);
     writeFileSync(
-      resolve(skillsHelloWorldDir, "instruction.txt"),
+      resolve(abilitiesHelloWorldDir, "instruction.txt"),
       "Say hello world"
     );
     writeFileSync(
-      resolve(skillsHelloWorldDir, "description.txt"),
+      resolve(abilitiesHelloWorldDir, "description.txt"),
       "Says hello world"
     );
-    log.info(`Created hello world skill for`, prefixedBotName);
-    mkdirSync(systemDir);
+    log.info(`Created hello world ability for`, prefixedBotName);
+
+    // Initialize identity files: backstory, matched, mismatched.
+    mkdirSync(identityDir);
     writeFileSync(
-      resolve(systemDir, "backstory.txt"),
+      resolve(identityDir, "backstory.txt"),
       "ADD YOUR BOT BACKSTORY HERE"
     );
     writeFileSync(
-      resolve(systemDir, "matched.txt"),
+      resolve(identityDir, "matched.txt"),
       "Only use the information below to answer this prompt: {search}."
     );
     writeFileSync(
-      resolve(systemDir, "mismatched.txt"),
+      resolve(identityDir, "mismatched.txt"),
       "I couldn't find any information for {search}."
     );
-    log.info(`Created system prompt files for`, prefixedBotName);
+    log.info(`Created identity prompt files for`, prefixedBotName);
+
     writeFileSync(
-      resolve(botDir, "dynamic.ts"),
-      `import type { DynamicBotBuilder } from "../../build-a-bot/types";
-
-const dynamicBot: DynamicBotBuilder = async (fileBot) => {
-  return {
-    // ADD DYNAMIC OR SENSITIVIE PROMPT DATA HERE
-  };
-};
-
-export default dynamicBot;
-    `.trim()
+      resolve(botDir, "variables.ts"),
+      stripIndent`
+        import type { VariablesBuilder } from "../../chatbotkit/lib/types";
+        
+        const variables: VariablesBuilder = async () => {
+          return {
+            
+          };
+        };
+        
+        export default variables;
+      `
     );
-    log.info(`Created dynamic.ts file for`, prefixedBotName);
+    log.info(`Created variables.ts file for`, prefixedBotName);
 
     await parse(botsDir);
 
